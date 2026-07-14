@@ -12,7 +12,7 @@ GitHub App based: **install once, cover every repo** — no per-repository webho
 GitHub App  ─┐                                        ┌─ Discord   ✅
 GitLab      ─┼─►  normalize ─► filter/route ─► render ┼─ Slack     ✅
 Azure DevOps─┘   CanonicalEvent      ▲                ├─ Teams     (planned)
-                                      │                └─ LINE      (planned)
+                                      │                └─ LINE      ✅
                               rules (subscriptions.yaml)
 ```
 
@@ -53,7 +53,7 @@ and point the App's webhook URL at it.
 
 - Phase 0 ✅ GitHub App + CanonicalEvent + Discord sink
 - Phase 1 — richer filters / per-target formatting
-- Phase 2 — Slack ✅ / Teams / LINE sinks
+- Phase 2 — Slack ✅ / LINE ✅ / Teams sinks
 - Phase 3 — GitLab / Azure DevOps sources
 - Phase 4 — web dashboard, DB, multi-tenant, OAuth (SaaS)
 - Phase 5 — GitHub Marketplace listing & billing
