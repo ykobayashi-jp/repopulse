@@ -1,0 +1,42 @@
+# RepoPulse routing rules.
+# Copy to config/subscriptions.yaml and edit.
+# Each rule matches an event, then delivers it to a sink target.
+# ${ENV_VAR} in target values is resolved from the environment (.env).
+#
+# Filter keys (all optional, ANDed together):
+#   sources      e.g. [github]
+#   categories   push | pull_request | review | release | issue | discussion |
+#                star | fork | workflow | deployment | security
+#   repos        full_name globs, e.g. ["your-org/*"]
+#   branches     branch globs, e.g. [main, "release/*"]
+#   minSeverity  low | medium | high | critical  (only events that have a severity)
+
+rules:
+  # Everything -> one Discord channel
+  - sink: discord
+    target:
+      webhookUrl: ${DISCORD_WEBHOOK_URL}
+
+  # Security alerts (high and above) -> same channel, ping a role
+  - sink: discord
+    categories: [security]
+    minSeverity: high
+    target:
+      webhookUrl: ${DISCORD_WEBHOOK_URL}
+      mention: "<@&YOUR_ROLE_ID>"
+
+  # PR activity on main for your org -> a specific thread/forum post
+  - sink: discord
+    categories: [pull_request]
+    repos: ["your-org/*"]
+    branches: [main]
+    target:
+      webhookUrl: ${DISCORD_WEBHOOK_URL}
+      threadId: "YOUR_THREAD_ID"
+
+  # Same events can also fan out to Slack (mention supports <!here>, <@U..>, <!subteam^S..>)
+  - sink: slack
+    categories: [release, security]
+    target:
+      webhookUrl: ${SLACK_WEBHOOK_URL}
+      mention: "<!here>"
