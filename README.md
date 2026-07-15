@@ -19,6 +19,8 @@ Azure DevOps ─┘    CanonicalEvent      ▲              ├─ Teams     (pl
 - **Source** (`src/sources/*`): verify signature + map platform payload → `CanonicalEvent`.
 - **Core** (`src/core/*`): the `CanonicalEvent` shape, the `Source`/`Sink` ports, and the rule matcher.
 - **Sink** (`src/sinks/*`): render a `CanonicalEvent` into a platform message and deliver it.
+- **Store** (`src/store/*`): SQLite (`node:sqlite`, no native build) holding rules and delivery history.
+- **Web** (`src/web/*`): server-rendered dashboard to view/edit rules and inspect deliveries.
 
 Adding GitLab/Azure = one new Source. Adding Slack/Teams/LINE = one new Sink. The core never changes.
 Each source gets its own endpoint: `POST /webhooks/github`, `POST /webhooks/gitlab`.
@@ -33,9 +35,15 @@ Supported GitLab events: push, merge_request, issue, release, pipeline, deployme
 ```bash
 npm install
 cp .env.example .env                                  # fill in secrets
-cp config/subscriptions.example.yaml config/subscriptions.yaml
+cp config/subscriptions.example.yaml config/subscriptions.yaml   # optional: seeds rules on first run
 npm run dev
 ```
+
+Open the **dashboard** at `http://localhost:3000/` to add/edit routing rules and inspect
+delivery history. Rules live in SQLite (`DB_PATH`, default `data/repopulse.db`); on first run
+any `subscriptions.yaml` rules are imported as the initial set. The dashboard is currently
+**unauthenticated** — bind it to localhost and do not expose it publicly until auth lands
+(multi-tenant / OAuth is the next phase).
 
 Then create a **GitHub App** (Settings → Developer settings → GitHub Apps):
 - Webhook URL: `https://<your-host>/webhooks/github`
@@ -49,7 +57,7 @@ and point the App's webhook URL at it.
 
 - `npm run dev` — watch mode (tsx)
 - `npm start` — run once
-- `npm test` — unit tests (`node:test`, covers `normalize` + `router`)
+- `npm test` — unit tests (`node:test`, covers normalize, router, and store)
 - `npm run typecheck` — `tsc --noEmit`
 
 ## Roadmap
@@ -58,5 +66,5 @@ and point the App's webhook URL at it.
 - Phase 1 — richer filters / per-target formatting
 - Phase 2 — Slack ✅ / LINE ✅ / Teams sinks
 - Phase 3 — GitLab ✅ / Azure DevOps sources
-- Phase 4 — web dashboard, DB, multi-tenant, OAuth (SaaS)
+- Phase 4 — web dashboard ✅ + SQLite ✅ · multi-tenant + OAuth (next)
 - Phase 5 — GitHub Marketplace listing & billing

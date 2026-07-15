@@ -6,6 +6,7 @@ export interface AppConfig {
   port: number;
   githubSecret: string;
   gitlabSecret: string;
+  dbPath: string;
   rules: Rule[];
 }
 
@@ -65,6 +66,7 @@ export function loadConfig(path = "config/subscriptions.yaml"): AppConfig {
     port: Number(process.env.PORT ?? 3000),
     githubSecret: process.env.GITHUB_WEBHOOK_SECRET ?? "",
     gitlabSecret: process.env.GITLAB_WEBHOOK_SECRET ?? "",
+    dbPath: process.env.DB_PATH ?? "data/repopulse.db",
     rules,
   };
 }
