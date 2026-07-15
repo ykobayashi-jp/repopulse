@@ -48,3 +48,11 @@ rules:
     target:
       channelAccessToken: ${LINE_CHANNEL_ACCESS_TOKEN}
       to: ${LINE_TO}
+
+  # Rules can also target a specific source. GitLab events arrive at POST /webhooks/gitlab.
+  # (GitLab pipelines normalize to the "workflow" category, MRs to "pull_request".)
+  - sink: discord
+    sources: [gitlab]
+    categories: [pull_request, workflow]
+    target:
+      webhookUrl: ${DISCORD_WEBHOOK_URL}

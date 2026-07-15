@@ -5,6 +5,7 @@ import type { Rule } from "./core/router";
 export interface AppConfig {
   port: number;
   githubSecret: string;
+  gitlabSecret: string;
   rules: Rule[];
 }
 
@@ -63,6 +64,7 @@ export function loadConfig(path = "config/subscriptions.yaml"): AppConfig {
   return {
     port: Number(process.env.PORT ?? 3000),
     githubSecret: process.env.GITHUB_WEBHOOK_SECRET ?? "",
+    gitlabSecret: process.env.GITLAB_WEBHOOK_SECRET ?? "",
     rules,
   };
 }
