@@ -40,3 +40,11 @@ rules:
     target:
       webhookUrl: ${SLACK_WEBHOOK_URL}
       mention: "<!here>"
+
+  # LINE uses a channel access token + a destination id (user/group/room), not a webhook URL
+  - sink: line
+    categories: [security]
+    minSeverity: high
+    target:
+      channelAccessToken: ${LINE_CHANNEL_ACCESS_TOKEN}
+      to: ${LINE_TO}

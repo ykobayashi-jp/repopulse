@@ -4,6 +4,7 @@ import { loadConfig, loadDotenv } from "./config";
 import type { Sink } from "./core/ports";
 import { matchRules } from "./core/router";
 import { createDiscordSink } from "./sinks/discord";
+import { createLineSink } from "./sinks/line";
 import { createSlackSink } from "./sinks/slack";
 import { createGitHubSource } from "./sources/github";
 
@@ -14,6 +15,7 @@ const github = createGitHubSource(config.githubSecret);
 const sinks: Record<string, Sink> = {
   discord: createDiscordSink(),
   slack: createSlackSink(),
+  line: createLineSink(),
 };
 
 const app = new Hono();
