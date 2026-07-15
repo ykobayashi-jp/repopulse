@@ -41,9 +41,19 @@ npm run dev
 
 Open the **dashboard** at `http://localhost:3000/` to add/edit routing rules and inspect
 delivery history. Rules live in SQLite (`DB_PATH`, default `data/repopulse.db`); on first run
-any `subscriptions.yaml` rules are imported as the initial set. The dashboard is currently
-**unauthenticated** — bind it to localhost and do not expose it publicly until auth lands
-(multi-tenant / OAuth is the next phase).
+any `subscriptions.yaml` rules are imported as the initial set.
+
+### Dashboard auth
+
+The dashboard supports **GitHub login** via your GitHub App's OAuth credentials. Set
+`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `SESSION_SECRET`, `BASE_URL`, and
+`GITHUB_ALLOWED_LOGINS`, and add `<BASE_URL>/auth/callback` as a callback URL in the App
+settings. When all three secrets are set, every dashboard route requires a signed-cookie
+session and an allow-listed login; webhooks stay open (they are signature-verified).
+
+If those secrets are **unset**, auth is disabled and the dashboard runs **open** — intended
+for localhost development only. (Per-tenant data isolation is a later phase; today all data is
+shared across whoever can log in.)
 
 Then create a **GitHub App** (Settings → Developer settings → GitHub Apps):
 - Webhook URL: `https://<your-host>/webhooks/github`
@@ -66,5 +76,5 @@ and point the App's webhook URL at it.
 - Phase 1 — richer filters / per-target formatting
 - Phase 2 — Slack ✅ / LINE ✅ / Teams sinks
 - Phase 3 — GitLab ✅ / Azure DevOps sources
-- Phase 4 — web dashboard ✅ + SQLite ✅ · multi-tenant + OAuth (next)
+- Phase 4 — web dashboard ✅ + SQLite ✅ + GitHub login gate ✅ · multi-tenant isolation (next)
 - Phase 5 — GitHub Marketplace listing & billing

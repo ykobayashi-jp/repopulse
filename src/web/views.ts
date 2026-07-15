@@ -2,6 +2,11 @@ import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { DeliveryRow, StoredRule } from "../store/db";
 
+let authEnabled = false;
+export function setAuthEnabled(v: boolean): void {
+  authEnabled = v;
+}
+
 const STYLE = `
   :root { color-scheme: light dark; --bg:#fff; --fg:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --card:#fafafa; --accent:#2563eb; }
   @media (prefers-color-scheme: dark) {
@@ -57,6 +62,7 @@ function layout(title: string, body: HtmlEscapedString | Promise<HtmlEscapedStri
             <a href="/rules">Rules</a>
             <a href="/deliveries">Deliveries</a>
           </nav>
+          ${authEnabled ? html`<a href="/logout" style="margin-left:auto;color:var(--muted)">Logout</a>` : ""}
         </header>
         <main>${body}</main>
       </body>
