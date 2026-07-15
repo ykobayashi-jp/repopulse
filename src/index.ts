@@ -9,9 +9,18 @@ import { createLineSink } from "./sinks/line";
 import { createSlackSink } from "./sinks/slack";
 import { createGitHubSource } from "./sources/github";
 import { createGitLabSource } from "./sources/gitlab";
+import { Store, toMatchRule } from "./store/db";
+import { registerWebRoutes } from "./web/routes";
 
 loadDotenv();
 const config = loadConfig();
+
+const store = new Store(config.dbPath);
+// First run: import any subscriptions.yaml rules as the initial ruleset.
+if (store.countRules() === 0 && config.rules.length > 0) {
+  const n = store.importRules(config.rules);
+  console.log(`[store] imported ${n} rule(s) from subscriptions.yaml into ${config.dbPath}`);
+}
 
 const sources: Record<string, Source> = {
   github: createGitHubSource(config.githubSecret),
@@ -26,9 +35,6 @@ const sinks: Record<string, Sink> = {
 
 const app = new Hono();
 
-app.get("/", (c) =>
-  c.json({ name: "RepoPulse", status: "ok", rules: config.rules.length }),
-);
 app.get("/healthz", (c) => c.text("ok"));
 
 // One webhook endpoint per source: POST /webhooks/<source id>.
@@ -50,20 +56,42 @@ for (const [path, source] of Object.entries(sources)) {
   });
 }
 
+// Dashboard (server-rendered). Registered last so it owns "/".
+registerWebRoutes(app, { store, sinks: Object.keys(sinks), sources: Object.keys(sources) });
+
 async function dispatch(events: CanonicalEvent[]): Promise<void> {
   for (const event of events) {
-    const matched = matchRules(event, config.rules);
+    const base = {
+      eventId: event.id,
+      source: event.source,
+      category: event.category,
+      action: event.action,
+      title: event.title,
+      repo: event.repo.fullName,
+      url: event.url,
+    };
+
+    const matched = matchRules(event, store.listEnabledRules().map(toMatchRule));
+    if (matched.length === 0) {
+      store.recordDelivery({ ...base, status: "no-match" });
+      continue;
+    }
+
     await Promise.allSettled(
       matched.map(async (rule) => {
         const sink = sinks[rule.sink];
         if (!sink) {
           console.warn(`[dispatch] unknown sink: ${rule.sink}`);
+          store.recordDelivery({ ...base, sink: rule.sink, status: "failed", error: "unknown sink" });
           return;
         }
         try {
           await sink.deliver(event, rule.target);
+          store.recordDelivery({ ...base, sink: sink.id, status: "ok" });
         } catch (e) {
-          console.error(`[dispatch] ${sink.id} failed for ${event.id}:`, (e as Error).message);
+          const msg = (e as Error).message;
+          console.error(`[dispatch] ${sink.id} failed for ${event.id}:`, msg);
+          store.recordDelivery({ ...base, sink: sink.id, status: "failed", error: msg });
         }
       }),
     );
@@ -72,8 +100,9 @@ async function dispatch(events: CanonicalEvent[]): Promise<void> {
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`RepoPulse listening on http://localhost:${info.port}`);
+  console.log(`  Dashboard:  http://localhost:${info.port}/`);
   for (const path of Object.keys(sources)) {
     console.log(`  ${path} webhook: POST /webhooks/${path}`);
   }
-  console.log(`  Loaded ${config.rules.length} routing rule(s)`);
+  console.log(`  ${store.countRules()} rule(s) in ${config.dbPath}`);
 });
