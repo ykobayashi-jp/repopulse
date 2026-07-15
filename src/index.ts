@@ -10,7 +10,9 @@ import { createSlackSink } from "./sinks/slack";
 import { createGitHubSource } from "./sources/github";
 import { createGitLabSource } from "./sources/gitlab";
 import { Store, toMatchRule } from "./store/db";
+import { loadAuthConfig, registerAuth } from "./web/auth";
 import { registerWebRoutes } from "./web/routes";
+import { setAuthEnabled } from "./web/views";
 
 loadDotenv();
 const config = loadConfig();
@@ -56,7 +58,20 @@ for (const [path, source] of Object.entries(sources)) {
   });
 }
 
-// Dashboard (server-rendered). Registered last so it owns "/".
+// Auth gate: public routes + webhooks are registered above; the guard added
+// here protects everything registered after it (the dashboard).
+const authConfig = loadAuthConfig(config.port);
+setAuthEnabled(authConfig !== null);
+if (authConfig) {
+  registerAuth(app, authConfig);
+  if (authConfig.allowedLogins.length === 0) {
+    console.warn("[auth] GITHUB_ALLOWED_LOGINS is empty — no user can sign in.");
+  }
+} else {
+  console.warn("[auth] disabled (GITHUB_CLIENT_ID/SECRET/SESSION_SECRET unset) — dashboard is OPEN. Do not expose publicly.");
+}
+
+// Dashboard (server-rendered). Registered after the guard so it is protected.
 registerWebRoutes(app, { store, sinks: Object.keys(sinks), sources: Object.keys(sources) });
 
 async function dispatch(events: CanonicalEvent[]): Promise<void> {
@@ -100,7 +115,7 @@ async function dispatch(events: CanonicalEvent[]): Promise<void> {
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`RepoPulse listening on http://localhost:${info.port}`);
-  console.log(`  Dashboard:  http://localhost:${info.port}/`);
+  console.log(`  Dashboard:  http://localhost:${info.port}/  (auth ${authConfig ? "on" : "OFF"})`);
   for (const path of Object.keys(sources)) {
     console.log(`  ${path} webhook: POST /webhooks/${path}`);
   }
