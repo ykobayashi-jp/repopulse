@@ -1,17 +1,23 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { loadConfig, loadDotenv } from "./config";
-import type { Sink } from "./core/ports";
+import type { CanonicalEvent } from "./core/events";
+import type { Sink, Source } from "./core/ports";
 import { matchRules } from "./core/router";
 import { createDiscordSink } from "./sinks/discord";
 import { createLineSink } from "./sinks/line";
 import { createSlackSink } from "./sinks/slack";
 import { createGitHubSource } from "./sources/github";
+import { createGitLabSource } from "./sources/gitlab";
 
 loadDotenv();
 const config = loadConfig();
 
-const github = createGitHubSource(config.githubSecret);
+const sources: Record<string, Source> = {
+  github: createGitHubSource(config.githubSecret),
+  gitlab: createGitLabSource(config.gitlabSecret),
+};
+
 const sinks: Record<string, Sink> = {
   discord: createDiscordSink(),
   slack: createSlackSink(),
@@ -25,23 +31,26 @@ app.get("/", (c) =>
 );
 app.get("/healthz", (c) => c.text("ok"));
 
-app.post("/webhooks/github", async (c) => {
-  const rawBody = await c.req.text();
-  const headers: Record<string, string> = {};
-  c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
+// One webhook endpoint per source: POST /webhooks/<source id>.
+for (const [path, source] of Object.entries(sources)) {
+  app.post(`/webhooks/${path}`, async (c) => {
+    const rawBody = await c.req.text();
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
 
-  const req = { headers, rawBody };
-  if (!github.verify(req)) return c.text("invalid signature", 401);
+    const req = { headers, rawBody };
+    if (!source.verify(req)) return c.text("invalid signature", 401);
 
-  const events = github.normalize(req);
-  if (events) {
-    // Ack fast, deliver asynchronously so bursts don't block the webhook.
-    queueMicrotask(() => dispatch(events));
-  }
-  return c.text("accepted", 202);
-});
+    const events = source.normalize(req);
+    if (events) {
+      // Ack fast, deliver asynchronously so bursts don't block the webhook.
+      queueMicrotask(() => dispatch(events));
+    }
+    return c.text("accepted", 202);
+  });
+}
 
-async function dispatch(events: import("./core/events").CanonicalEvent[]): Promise<void> {
+async function dispatch(events: CanonicalEvent[]): Promise<void> {
   for (const event of events) {
     const matched = matchRules(event, config.rules);
     await Promise.allSettled(
@@ -63,6 +72,8 @@ async function dispatch(events: import("./core/events").CanonicalEvent[]): Promi
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`RepoPulse listening on http://localhost:${info.port}`);
-  console.log(`  GitHub webhook: POST /webhooks/github`);
+  for (const path of Object.keys(sources)) {
+    console.log(`  ${path} webhook: POST /webhooks/${path}`);
+  }
   console.log(`  Loaded ${config.rules.length} routing rule(s)`);
 });
