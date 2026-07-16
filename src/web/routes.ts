@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import type { EventCategory, Severity } from "../core/events";
+import { buildSinkTarget } from "../sinks/targets";
 import type { RuleInput, Store } from "../store/db";
 import { dashboardPage, deliveriesPage, ruleFormPage, rulesPage } from "./views";
 
@@ -18,19 +19,26 @@ function csv(value: unknown): string[] | undefined {
   return arr.length ? arr : undefined;
 }
 
-/** Build a RuleInput from posted form fields. Throws on invalid target JSON. */
+/** Build a RuleInput from posted form fields. Throws on missing/invalid target. */
 function parseRuleForm(body: Record<string, unknown>): RuleInput {
-  let target: Record<string, unknown>;
-  try {
-    target = JSON.parse(String(body.target ?? "{}"));
-  } catch {
-    throw new Error("Target must be valid JSON.");
-  }
-  if (typeof target !== "object" || target === null || Array.isArray(target)) {
-    throw new Error("Target must be a JSON object.");
-  }
   const sink = String(body.sink ?? "").trim();
   if (!sink) throw new Error("Sink is required.");
+
+  // Per-sink fields are posted as t_<sink>_<key>; unknown sinks fall back to raw JSON.
+  let target = buildSinkTarget(sink, (key) => {
+    const v = body[`t_${sink}_${key}`];
+    return v == null ? undefined : String(v);
+  });
+  if (target === null) {
+    try {
+      target = JSON.parse(String(body[`t_${sink}_json`] ?? "{}"));
+    } catch {
+      throw new Error("Target must be valid JSON.");
+    }
+    if (typeof target !== "object" || target === null || Array.isArray(target)) {
+      throw new Error("Target must be a JSON object.");
+    }
+  }
 
   const minSeverity = String(body.minSeverity ?? "").trim() || undefined;
 

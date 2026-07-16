@@ -1,5 +1,6 @@
 import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
+import { SINK_TARGET_FIELDS } from "../sinks/targets";
 import type { DeliveryRow, StoredRule } from "../store/db";
 
 let authEnabled = false;
@@ -173,7 +174,9 @@ export function ruleFormPage(
   const r = opts.rule;
   const action = r ? `/rules/${r.id}` : "/rules";
   const sevs = ["", "low", "medium", "high", "critical"];
-  const target = JSON.stringify(r?.target ?? { webhookUrl: "${DISCORD_WEBHOOK_URL}" }, null, 2);
+  const selectedSink = r?.sink ?? opts.sinks[0];
+  const tval = (sink: string, key: string) =>
+    r?.sink === sink ? String((r.target as Record<string, unknown>)[key] ?? "") : "";
   return layout(
     r ? `Edit rule ${r.id}` : "New rule",
     html`
@@ -198,8 +201,25 @@ export function ruleFormPage(
             </select>
           </div>
         </div>
-        <label>Target (JSON) — <span class="code">$&#123;ENV_VAR&#125; is expanded at delivery time</span></label>
-        <textarea name="target">${target}</textarea>
+        <label>Target — <span class="code">$&#123;ENV_VAR&#125; is expanded at delivery time</span></label>
+        ${opts.sinks.map((s) => {
+          const fields = SINK_TARGET_FIELDS[s];
+          const show = s === selectedSink ? "" : "display:none";
+          if (!fields) {
+            return html`<fieldset class="sink-fields" data-sink="${s}" style="${show};border:1px solid var(--line);border-radius:8px;padding:12px">
+              <label>Target (JSON)</label>
+              <textarea name="t_${s}_json">${tval(s, "") || "{}"}</textarea>
+            </fieldset>`;
+          }
+          return html`<fieldset class="sink-fields" data-sink="${s}" style="${show};border:1px solid var(--line);border-radius:8px;padding:12px">
+            ${fields.map(
+              (f) => html`
+                <label>${f.label}</label>
+                <input name="t_${s}_${f.key}" value="${tval(s, f.key)}" placeholder="${f.placeholder ?? ""}" />
+              `,
+            )}
+          </fieldset>`;
+        })}
         <div class="row">
           <div>
             <label>Sources (comma-separated, blank = all) — e.g. ${opts.sources.join(", ")}</label>
@@ -226,6 +246,18 @@ export function ruleFormPage(
           <a class="btn" href="/rules">Cancel</a>
         </p>
       </form>
+      <script>
+        (function () {
+          var sel = document.querySelector("select[name=sink]");
+          function sync() {
+            document.querySelectorAll(".sink-fields").forEach(function (f) {
+              f.style.display = f.dataset.sink === sel.value ? "" : "none";
+            });
+          }
+          sel.addEventListener("change", sync);
+          sync();
+        })();
+      </script>
     `,
   );
 }
