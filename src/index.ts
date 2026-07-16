@@ -8,6 +8,7 @@ import { createDiscordSink } from "./sinks/discord";
 import { createLineSink } from "./sinks/line";
 import { createSlackSink } from "./sinks/slack";
 import { createTeamsSink } from "./sinks/teams";
+import { createAzureSource } from "./sources/azure";
 import { createGitHubSource } from "./sources/github";
 import { createGitLabSource } from "./sources/gitlab";
 import { Store, toMatchRule } from "./store/db";
@@ -28,6 +29,7 @@ if (store.countRules() === 0 && config.rules.length > 0) {
 const sources: Record<string, Source> = {
   github: createGitHubSource(config.githubSecret),
   gitlab: createGitLabSource(config.gitlabSecret),
+  azure: createAzureSource(config.azureSecret),
 };
 
 const sinks: Record<string, Sink> = {
