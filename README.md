@@ -9,10 +9,10 @@ GitHub App based: **install once, cover every repo** — no per-repository webho
 
 ```
 [Source Adapter]          Core                       [Sink Adapter]
-GitHub App  ✅ ─┐                                     ┌─ Discord   ✅
-GitLab      ✅ ─┼─► normalize ─► filter/route ─► render┼─ Slack     ✅
-Azure DevOps ─┘    CanonicalEvent      ▲              ├─ Teams     ✅
-                                        │              └─ LINE      ✅
+GitHub App   ✅ ─┐                                    ┌─ Discord   ✅
+GitLab       ✅ ─┼─► normalize ─► filter/route ─► render┼─ Slack     ✅
+Azure DevOps ✅ ─┘   CanonicalEvent      ▲            ├─ Teams     ✅
+                                          │            └─ LINE      ✅
                                rules (subscriptions.yaml)
 ```
 
@@ -29,6 +29,8 @@ Supported GitHub events: push, pull_request, review, release, issue, discussion,
 star, fork, workflow_run, deployment_status, secret_scanning / dependabot / code_scanning alerts.
 Supported GitLab events: push, merge_request, issue, release, pipeline, deployment
 (MR/issue actions are mapped to GitHub-style verbs so filters read the same).
+Supported Azure DevOps events: git.push, git.pullrequest.*, build.complete,
+release deployment-completed, workitem.created/updated (via Service Hooks, Basic auth).
 
 ## Quick start
 
@@ -75,6 +77,6 @@ and point the App's webhook URL at it.
 - Phase 0 ✅ GitHub App + CanonicalEvent + Discord sink
 - Phase 1 — richer filters / per-target formatting
 - Phase 2 — Slack ✅ / LINE ✅ / Teams ✅ sinks
-- Phase 3 — GitLab ✅ / Azure DevOps sources
+- Phase 3 — GitLab ✅ / Azure DevOps ✅ sources
 - Phase 4 — web dashboard ✅ + SQLite ✅ + GitHub login gate ✅ · multi-tenant isolation (next)
 - Phase 5 — GitHub Marketplace listing & billing
