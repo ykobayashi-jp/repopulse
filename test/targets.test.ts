@@ -25,5 +25,5 @@ test("values are trimmed", () => {
 });
 
 test("unknown sink returns null (caller falls back to raw JSON)", () => {
-  assert.equal(buildSinkTarget("teams", from({})), null);
+  assert.equal(buildSinkTarget("matrix", from({})), null);
 });

@@ -7,6 +7,7 @@ import { matchRules } from "./core/router";
 import { createDiscordSink } from "./sinks/discord";
 import { createLineSink } from "./sinks/line";
 import { createSlackSink } from "./sinks/slack";
+import { createTeamsSink } from "./sinks/teams";
 import { createGitHubSource } from "./sources/github";
 import { createGitLabSource } from "./sources/gitlab";
 import { Store, toMatchRule } from "./store/db";
@@ -33,6 +34,7 @@ const sinks: Record<string, Sink> = {
   discord: createDiscordSink(),
   slack: createSlackSink(),
   line: createLineSink(),
+  teams: createTeamsSink(),
 };
 
 const app = new Hono();
