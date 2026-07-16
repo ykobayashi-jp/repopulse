@@ -25,6 +25,9 @@ export const SINK_TARGET_FIELDS: Record<string, SinkTargetField[]> = {
     { key: "channelAccessToken", label: "Channel access token", required: true, placeholder: "${LINE_CHANNEL_ACCESS_TOKEN}" },
     { key: "to", label: "Destination id (user / group / room)", required: true, placeholder: "${LINE_TO}" },
   ],
+  teams: [
+    { key: "webhookUrl", label: "Workflows webhook URL", required: true, placeholder: "${TEAMS_WEBHOOK_URL}" },
+  ],
 };
 
 /**
